@@ -9,6 +9,8 @@ from direct.showbase.ShowBase import ShowBase
 from panda3d.core import WindowProperties
 from panda3d.core import Vec4, Vec3
 
+import sys
+
 class Game(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
@@ -54,6 +56,7 @@ class Game(ShowBase):
         self.accept("d-up", self.updateKeyMap, ["right", False])
         self.accept("space", self.updateKeyMap, ["jump", True])
         self.accept("space-up", self.updateKeyMap, ["jump", False])
+        self.accept("escape", self.quit)
     
     def initializePlayer(self):
         self.playerHeight = 10
@@ -100,6 +103,11 @@ class Game(ShowBase):
         if self.playerIsGrounded:
             self.playerZSpeed = self.jumpStrength
             self.playerIsGrounded = False
+    
+    def quit(self):
+        #self.cleanup()
+        base.userExit()
+
 
 game = Game()
 game.run()
