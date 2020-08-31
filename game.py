@@ -8,6 +8,8 @@ Created on Sat Aug 29 10:35:55 2020
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import WindowProperties
 from panda3d.core import Vec4, Vec3
+from panda3d.core import AmbientLight
+from panda3d.core import DirectionalLight
 
 from panda3d.core import LineSegs
 from panda3d.core import NodePath
@@ -33,6 +35,18 @@ class Game(ShowBase):
                 grassTile.setX(self.tileSize*i)
                 grassTile.setY(self.tileSize*j)
                 grassTile.reparentTo(render)
+        
+        ambientLight = AmbientLight("ambient light")
+        ambientLight.setColor(Vec4(0.2, 0.2, 0.2, 1))
+        self.ambientLightNodePath = render.attachNewNode(ambientLight)
+        render.setLight(self.ambientLightNodePath)
+        mainLight = DirectionalLight("main light")
+        self.mainLightNodePath = render.attachNewNode(mainLight)
+        # Turn it around by 45 degrees, and tilt it down by 45 degrees
+        self.mainLightNodePath.setHpr(45, -45, 0)
+        render.setLight(self.mainLightNodePath)
+        render.setShaderAuto()
+        base.setBackgroundColor(0.5, 0.6, 1)
         
         self.initializeKeyMap()
         self.initializePlayer()
