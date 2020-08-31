@@ -32,11 +32,20 @@ class Game(ShowBase):
         self.initializeKeyMap()
         self.initializePlayer()
         self.initializeMouse()
+        
+        lines = LineSegs()
+        lines.moveTo(0,10,0)
+        lines.drawTo(0,10,26)
+        lines.setThickness(4)
+        node = lines.create()
+        np = NodePath(node)
+        np.reparentTo(render)
 
         self.camera.setPos(0, 0, 5)
         self.camera.setH(self.playerXYAngle*180/pi)
         self.camera.setP(self.playerZAngle*180/pi)
                 
+        self.frameNumber = 0
         self.updateTask = taskMgr.add(self.update, "update")
     
     # ============================================
@@ -73,17 +82,17 @@ class Game(ShowBase):
         self.playerXYSpeed = 5.0
         self.playerZSpeed = 0.0
         self.playerIsGrounded = True
-        self.playerXYAngle = pi/2
+        self.playerXYAngle = 0
         self.playerZAngle = 0
     
     def initializeMouse(self):
-        self.win.movePointer(0, 500, 250)
         # To set relative mode and hide the cursor:
         props = WindowProperties()
         props.setCursorHidden(True)
         props.setMouseMode(WindowProperties.M_relative)
         self.win.requestProperties(props)
         self.mouseSensitivity = 0.01
+        base.win.movePointer(0, 500, 250)
 
     # ============================================
     #
@@ -95,6 +104,7 @@ class Game(ShowBase):
     
     def update(self, task):
         dt = globalClock.getDt()
+        self.frameNumber += 1
         
         self.movePlayer(dt)
         self.reactToMouseMotion()
@@ -136,14 +146,17 @@ class Game(ShowBase):
         md = base.win.getPointer(0)
         x = md.getX()
         y = md.getY()
+        # fixes stupid bug where the cursor gets moved to 600,200
+        # without me moving the mouse
+        if self.frameNumber < 3:
+            base.win.movePointer(0, 500, 250)
+            return
         if y != 250 or x != 500:
-            distance = sqrt((x-500)*(x-500) + (y-250)*(y-250))
-            theta = atan2(y - 250, x - 500)
-            self.playerXYAngle -= cos(theta)*self.mouseSensitivity*distance
-            self.playerZAngle -= sin(theta)*self.mouseSensitivity*distance
+            self.playerXYAngle -= (x - 500)*self.mouseSensitivity
+            self.playerZAngle -= (y - 250)*self.mouseSensitivity
             self.camera.setH(self.playerXYAngle*180/pi)
             self.camera.setP(self.playerZAngle*180/pi)
-            self.win.movePointer(0, 500, 250)
+            base.win.movePointer(0, 500, 250)
     
     def tryToJump(self):
         if self.playerIsGrounded:
