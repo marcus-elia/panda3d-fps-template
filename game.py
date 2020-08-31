@@ -9,16 +9,21 @@ from direct.showbase.ShowBase import ShowBase
 from panda3d.core import WindowProperties
 from panda3d.core import Vec4, Vec3
 
-import sys
+from panda3d.core import LineSegs
+from panda3d.core import NodePath
+
+from math import atan2, pi, cos, sin, sqrt
 
 class Game(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
 
         self.disableMouse()
+        self.windowWidth = 1000
+        self.windowHeight = 500
 
         properties = WindowProperties()
-        properties.setSize(1000, 500)
+        properties.setSize(self.windowWidth, self.windowHeight)
         self.win.requestProperties(properties)
         
         self.environment = loader.loadModel("Models/Environment/ground.bam")
@@ -26,9 +31,11 @@ class Game(ShowBase):
         
         self.initializeKeyMap()
         self.initializePlayer()
+        self.initializeMouse()
 
         self.camera.setPos(0, 0, 5)
-        self.camera.setP(-30)
+        self.camera.setH(self.playerXYAngle*180/pi)
+        self.camera.setP(self.playerZAngle*180/pi)
                 
         self.updateTask = taskMgr.add(self.update, "update")
     
@@ -60,11 +67,23 @@ class Game(ShowBase):
     
     def initializePlayer(self):
         self.playerHeight = 10
+        self.playerLocation = Vec3(0, 0, 5)
         self.gravity = 10.0
         self.jumpStrength = 5.0
         self.playerXYSpeed = 5.0
         self.playerZSpeed = 0.0
         self.playerIsGrounded = True
+        self.playerXYAngle = pi/2
+        self.playerZAngle = 0
+    
+    def initializeMouse(self):
+        self.win.movePointer(0, 500, 250)
+        # To set relative mode and hide the cursor:
+        props = WindowProperties()
+        props.setCursorHidden(True)
+        props.setMouseMode(WindowProperties.M_relative)
+        self.win.requestProperties(props)
+        self.mouseSensitivity = 0.01
 
     # ============================================
     #
@@ -76,28 +95,55 @@ class Game(ShowBase):
     
     def update(self, task):
         dt = globalClock.getDt()
+        
+        self.movePlayer(dt)
+        self.reactToMouseMotion()
+
+        return task.cont
+    
+    def movePlayer(self, dt):
         s = self.playerXYSpeed
 
+        # Move the player in response to key inputs
         if self.keyMap["up"]:
-            self.camera.setPos(self.camera.getPos() + Vec3(0, s*dt, 0))
+            self.playerLocation.x -= sin(self.playerXYAngle)*s*dt
+            self.playerLocation.y += cos(self.playerXYAngle)*s*dt
         if self.keyMap["down"]:
-            self.camera.setPos(self.camera.getPos() + Vec3(0, -s*dt, 0))
+            self.playerLocation.x += sin(self.playerXYAngle)*s*dt
+            self.playerLocation.y -= cos(self.playerXYAngle)*s*dt
         if self.keyMap["left"]:
-            self.camera.setPos(self.camera.getPos() + Vec3(-s*dt, 0, 0))
+            self.playerLocation.x -= sin(self.playerXYAngle + pi/2)*s*dt
+            self.playerLocation.y += cos(self.playerXYAngle + pi/2)*s*dt
         if self.keyMap["right"]:
-            self.camera.setPos(self.camera.getPos() + Vec3(s*dt, 0, 0))
+            self.playerLocation.x += sin(self.playerXYAngle + pi/2)*s*dt
+            self.playerLocation.y -= cos(self.playerXYAngle + pi/2)*s*dt
         if self.keyMap["jump"]:
             self.tryToJump()
         
+        # Apply gravity to the player
         if not self.playerIsGrounded:
-            self.camera.setPos(self.camera.getPos() + Vec3(0, 0, self.playerZSpeed*dt))
+            self.playerLocation.z += self.playerZSpeed*dt
             self.playerZSpeed -= self.gravity*dt
-            if self.camera.getPos().z < self.playerHeight/2:
+            if self.playerLocation.z < self.playerHeight/2:
                 self.playerIsGrounded = True
                 self.playerZSpeed = 0.0
-                self.camera.setPos(self.camera.getPos().x, self.camera.getPos().y, self.playerHeight/2)
-
-        return task.cont
+                self.playerLocation.z = self.playerHeight/2
+                
+        # Move the camera to where the player is
+        self.camera.setPos(self.playerLocation)
+    
+    def reactToMouseMotion(self):
+        md = base.win.getPointer(0)
+        x = md.getX()
+        y = md.getY()
+        if y != 250 or x != 500:
+            distance = sqrt((x-500)*(x-500) + (y-250)*(y-250))
+            theta = atan2(y - 250, x - 500)
+            self.playerXYAngle -= cos(theta)*self.mouseSensitivity*distance
+            self.playerZAngle -= sin(theta)*self.mouseSensitivity*distance
+            self.camera.setH(self.playerXYAngle*180/pi)
+            self.camera.setP(self.playerZAngle*180/pi)
+            self.win.movePointer(0, 500, 250)
     
     def tryToJump(self):
         if self.playerIsGrounded:
