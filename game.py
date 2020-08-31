@@ -26,20 +26,17 @@ class Game(ShowBase):
         properties.setSize(self.windowWidth, self.windowHeight)
         self.win.requestProperties(properties)
         
-        self.environment = loader.loadModel("Models/Environment/ground.bam")
-        self.environment.reparentTo(render)
+        self.tileSize = 20
+        for i in range(-3, 4):
+            for j in range(-3, 4):
+                grassTile = loader.loadModel("Models/Environment/ground.bam")
+                grassTile.setX(self.tileSize*i)
+                grassTile.setY(self.tileSize*j)
+                grassTile.reparentTo(render)
         
         self.initializeKeyMap()
         self.initializePlayer()
         self.initializeMouse()
-        
-        lines = LineSegs()
-        lines.moveTo(0,10,0)
-        lines.drawTo(0,10,26)
-        lines.setThickness(4)
-        node = lines.create()
-        np = NodePath(node)
-        np.reparentTo(render)
 
         self.camera.setPos(0, 0, 5)
         self.camera.setH(self.playerXYAngle*180/pi)
